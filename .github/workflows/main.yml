@@ -6,11 +6,14 @@ on:
       website_url:
         description: 'Ссылка на ваш сайт (URL)'
         required: true
-        default: 'https://example.com'
+        default: 'https://perchance.org'
       app_name:
         description: 'Название приложения'
         required: true
-        default: 'My App'
+        default: 'URV AI Chat'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -30,15 +33,24 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Install website-to-apk tool
-        run: npm install -g website-to-apk
+      - name: Create Web Wrapper
+        run: |
+          mkdir -p dist
+          echo '<script>window.location.href="${{ github.event.inputs.website_url }}";</script>' > dist/index.html
+          npm install @capacitor/cli @capacitor/core @capacitor/android
+          npx cap init "${{ github.event.inputs.app_name }}" com.urvaichat.app --web-dir=dist
+          npx cap add android
+          npx cap sync
 
-      - name: Build APK File
-        run: website-to-apk --url "${{ github.event.inputs.website_url }}" --name "${{ github.event.inputs.app_name }}"
+      - name: Build APK with Gradle
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: Ready-APK-File
-          path: ./*.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           
