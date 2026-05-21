@@ -6,7 +6,7 @@ on:
       website_url:
         description: 'Ссылка на ваш сайт (URL)'
         required: true
-        default: 'https://perchance.org'
+        default: 'https://perchance.org/urv-ai-chat'
       app_name:
         description: 'Название приложения'
         required: true
@@ -19,26 +19,21 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Create static site configuration
+        run: |
+          mkdir -p build
+          echo '<script>window.location.href="${{ github.event.inputs.website_url }}";</script>' > build/index.html
+
+      - name: Convert to APK
+        uses: darkshredder/web-to-app-action@main
         with:
-          node-version: 24
-
-      - name: Setup Java (OpenJDK 17)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Install website-to-apk tool locally
-        run: npm install website-to-apk
-
-      - name: Build APK File
-        run: npx website-to-apk --url "${{ github.event.inputs.website_url }}" --name "${{ github.event.inputs.app_name }}"
+          build-folder-path: "build"
+          app-name: "${{ github.event.inputs.app_name }}"
+          output-folder-path: "my-apks"
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: Ready-APK-File
-          path: ./*.apk
+          path: my-apks/
           
