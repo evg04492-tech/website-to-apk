@@ -6,14 +6,11 @@ on:
       website_url:
         description: 'Ссылка на ваш сайт (URL)'
         required: true
-        default: 'https://perchance.org'
+        default: 'https://example.com'
       app_name:
         description: 'Название приложения'
         required: true
-        default: 'URV AI Chat'
-
-permissions:
-  contents: write
+        default: 'My App'
 
 jobs:
   build:
@@ -27,26 +24,21 @@ jobs:
         with:
           node-version: 20
 
-      - name: Setup Java
+      - name: Setup Java (OpenJDK 17)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Build Web Application
-        run: |
-          mkdir -p src
-          echo '<script>window.location.href="${{ github.event.inputs.website_url }}";</script>' > src/index.html
-          npm install -g @capacitor/cli @capacitor/core
-          npx cap init "${{ github.event.inputs.app_name }}" com.urvaichat.app --web-dir=src
-          npm install @capacitor/android
-          npx cap add android
-          npx cap sync
-          cd android && ./gradlew assembleDebug
+      - name: Install website-to-apk tool
+        run: npm install -g website-to-apk
+
+      - name: Build APK File
+        run: website-to-apk --url "${{ github.event.inputs.website_url }}" --name "${{ github.event.inputs.app_name }}"
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: Ready-APK-File
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: ./*.apk
           
