@@ -6,11 +6,14 @@ on:
       website_url:
         description: 'Ссылка на ваш сайт (URL)'
         required: true
-        default: 'https://perchance.org/urv-ai-chat'
+        default: 'https://perchance.org'
       app_name:
         description: 'Название приложения'
         required: true
         default: 'URV AI Chat'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -19,21 +22,31 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Create static site configuration
-        run: |
-          mkdir -p build
-          echo '<script>window.location.href="${{ github.event.inputs.website_url }}";</script>' > build/index.html
-
-      - name: Convert to APK
-        uses: darkshredder/web-to-app-action@main
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          build-folder-path: "build"
-          app-name: "${{ github.event.inputs.app_name }}"
-          output-folder-path: "my-apks"
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Build Web Application
+        run: |
+          mkdir -p src
+          echo '<script>window.location.href="${{ github.event.inputs.website_url }}";</script>' > src/index.html
+          npm install -g @capacitor/cli @capacitor/core
+          npx cap init "${{ github.event.inputs.app_name }}" com.urvaichat.app --web-dir=src
+          npm install @capacitor/android
+          npx cap add android
+          npx cap sync
+          cd android && ./gradlew assembleDebug
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: Ready-APK-File
-          path: my-apks/
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           
